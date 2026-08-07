@@ -1,3 +1,3 @@
-ENC_SHA256: ac332ce50cf2a8517bd253c44fb59c0107da7d3e8dc639e1ad9cd13d46ad763b
-PATCH: patch-2026.08.07-7.tar.gz (مُعمّاة AES-256-CBC/pbkdf2)
-BUILT: 2026-08-07 · النسخة 2026.08.07-3 · + ميزة جرد AD (قراءة/تحضير/مراجعة/استيراد)
+ENC_SHA256: 43ca9e5f18b657e82878d042bd8538911b8c4225f04ce26caf7b2e3f0892e83c
+PATCH: patch-2026.08.07-8.tar.gz (مُعمّاة AES-256-CBC/pbkdf2)
+BUILT: 2026-08-07 · جرد AD موسّع (خوادم+إدارات+مالك managedBy+خدمات SPN) — قراءة/مراجعة/استيراد
