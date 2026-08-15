@@ -1,0 +1,7 @@
+[Unit]
+Description=KAMC watchdog — فحصُ حياةٍ خارجيٌّ يكشف التجمّدَ الصامت
+After=kamc.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/kamc_ea/watchdog.sh

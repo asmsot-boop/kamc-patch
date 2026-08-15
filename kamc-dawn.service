@@ -1,0 +1,11 @@
+[Unit]
+Description=مسح الفجر — قراء البنية المؤسسية KAMC
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/kamc_ea
+# 🔑 **بيئة الخدمة نفسها** — ⚠️ **ومهمة بلا بيئتها تجد القراء «غير
+# مهيئين» وتكتب «لا تغير»**: صمت يقرأ استقرارا وهو عمى.
+EnvironmentFile=-%h/kamc_ea/env.conf
+EnvironmentFile=-%h/.config/kamc/env.conf
+ExecStart=%h/kamc_ea/dawn.sh
