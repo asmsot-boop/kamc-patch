@@ -1,41 +1,22 @@
-# نشر 24-8 — patch-2026.08.24-8
+# نشر 24-9 — patch-2026.08.24-9
 
-> **تطبَّق فوق 24-7.** ثلاثة ملفات: `vault.py` · `app.py` · `BUILD.json`.
-> بصمة الرقعة **داخل** التعمية: `373dce961dc055c28b1f029e`.
+> **تطبَّق فوق 24-8.** أربعة ملفات: `vault.py` · `win_inventory.py` · `nutanix_inventory.py` · `BUILD.json`.
+> بصمة الرقعة **داخل** التعمية: `09bc3794bf6b31273b4d15bb`.
 
-## 🩺 أول سحب حقيقي ردّ AccessDenied — والعطب في الصلاحية لا في الشبكة
+## 🔌 المنفذ من الخزنة — لا من افتراض في الكود
 
-نصّ الردّ: `WSManFaultError: Access is denied · wsmanfault_code 5 · HTTP 500`.
-**ومعناه دقيق:** المنفذ 5985 مفتوح، والخادم استقبل الطلب وردّ عليه، **ثم رفض الحساب**. أي أن الشبكة والخدمة سليمتان، والمفقود **تفويض الحساب بالإدارة عن بعد**.
+**عتب المالك:** «ليش تكتبه؟ أنا وضعته في الخزنة — اقرأ بيانات الاتصال في الخزنة واستعملها فقط».
 
-**ما تغيّر في الرقعة:**
-- ⚠️ **اختبار الخزنة كان يفحص المنفذ وحده فيقول «سليم» ويكذب.** صار اختبار نطاق `win` يجري **نداء PowerShell حقيقيا** (`$env:COMPUTERNAME`) ويعيد **نوع العطب وعلاجه** — ولا يعيد مخرَجا ولا اسما ولا مسارا.
-- شاشة الجرد صارت **تترجم AccessDenied إلى الخطوة المطلوبة** بدل عرض نصّ WSMan الخام.
+⚠️ **والعطب كان أدق مما يبدو:** `env_for` تعيد **المضيف والحساب والكلمة** و**تُسقط المنفذ**. فالخزنة تعرض حقل المنفذ ويملؤه المالك، **ثم لا يصل القارئ فيستعمل افتراضا مكتوبا في الكود**. ومن أدخل `5986` ظنّ أنه يتصل مشفّرا **وهو يتصل بـ5985**.
 
-## 🔧 العلاج — على الخادم الهدف (KAMCWEBEXT01) بصلاحية مسؤول
+**ما تغيّر:**
+- `env_for` تعيد **المنفذ** لكل نطاق (`KAMC_VC_PORT` · `KAMC_NTX_PORT` · `KAMC_AD_PORT` · `KAMC_WIN_PORT`).
+- **وحقل «إضافي» صار قناة وسائط**: يُكتب فيه `KAMC_WIN_SSL=1` أو `KAMC_WIN_TRANSPORT=kerberos` (مفصولة بفواصل أو أسطر) فتصل القارئ — **فما لا حقل له في الشاشة له طريق**.
+- ويندوز ونيوتانكس يأخذان المنفذ **من الخزنة أولا**، والافتراض القياسي **آخر الملاذ** لا أوله.
 
-```powershell
-# ① الخدمة والمنفذ (تأكيد)
-winrm quickconfig
-Get-Service WinRM
+**مقاس بالتشغيل:** `5985` · `5986` مع SSL · `47001` مع kerberos — **الثلاثة وصلت القارئ كما أُدخلت**.
 
-# ② عضوية الإدارة عن بعد — وهي الأرجح سببا
-Add-LocalGroupMember -Group "Remote Management Users" -Member "KAMC\<الحساب>"
-
-# ③ صلاحية على إعداد جلسة PowerShell
-Set-PSSessionConfiguration -Name Microsoft.PowerShell -ShowSecurityDescriptorUI
-#   امنح الحساب: Read + Execute(Invoke)
-
-# ④ صلاحية قراءة WMI على root\cimv2
-#   wmimgmt.msc ← خصائص ← Security ← Root\CIMV2 ← Advanced ← Add
-#   امنح: Enable Account + Remote Enable
-
-# ⑤ لو الحساب محليّ لا نطاقيّ (تقييد UAC للحسابات المحلية)
-New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" `
-  -Name LocalAccountTokenFilterPolicy -Value 1 -PropertyType DWord -Force
-```
-
-ثم من المنصّة: **`/repo/vault` ← نطاق «خوادم ويندوز» ← اختبار** — يجب أن يقول «ارتباط ناجح · وقراءة PowerShell تعمل». وبعدها **`/repo/win` ← «اسحب الآن وطبّق»**.
+ℹ️ **وقاعدة قائمة في الخزنة يحسن معرفتها:** الحقل الفارغ عند الحفظ يعني **«لا تغيّر»** لا «امسح» — فلا تفقد كلمة سر بحفظ نموذج فارغ.
 
 ## التطبيق
 
@@ -44,9 +25,7 @@ cd ~/kamc_ea
 curl -sL https://raw.githubusercontent.com/asmsot-boop/kamc-patch/main/latest.tar.gz.enc -o latest.tar.gz.enc
 curl -sL https://raw.githubusercontent.com/asmsot-boop/kamc-patch/main/latest.sha256 -o latest.sha256
 sha256sum -c <(echo "$(cat latest.sha256)  latest.tar.gz.enc")   # يجب OK
-openssl enc -d -aes-256-cbc -pbkdf2 -in latest.tar.gz.enc -out patch-2026.08.24-8.tar.gz -pass file:$HOME/.config/kamc/deploy_pass
-sha256sum patch-2026.08.24-8.tar.gz | cut -c1-24    # يجب 373dce961dc055c28b1f029e
-./patch.sh patch-2026.08.24-8.tar.gz
+openssl enc -d -aes-256-cbc -pbkdf2 -in latest.tar.gz.enc -out patch-2026.08.24-9.tar.gz -pass file:$HOME/.config/kamc/deploy_pass
+sha256sum patch-2026.08.24-9.tar.gz | cut -c1-24    # قارنه بالبصمة أعلاه
+./patch.sh patch-2026.08.24-9.tar.gz
 ```
-
-⚠️ **الرقعة تشخّص ولا تفتح صلاحية** — الخطوات أعلاه تُنفَّذ على الخادم الهدف بيد مسؤول ويندوز، **والمنصّة لا تملك ولا يجوز أن تملك** صلاحية تعديل تفويضات الخوادم.
