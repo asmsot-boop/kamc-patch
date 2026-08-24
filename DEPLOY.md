@@ -1,25 +1,29 @@
-# نشر 24-11 — patch-2026.08.24-11
+# نشر 24-12 — patch-2026.08.24-12
 
-> **تطبَّق فوق 24-10.** ثلاثة ملفات: `app.py` · `vault.py` · `BUILD.json`.
-> بصمة الرقعة **داخل** التعمية: `cc254d7a6be886f4ad02b74a`.
+> **تطبَّق فوق 24-11.** ثلاثة ملفات: `vault.py` · `app.py` · `BUILD.json`.
+> بصمة الرقعة **داخل** التعمية: `32a430cd1ef781fb0b213582`.
 
-## 🔐 «شهادة موقّعة ذاتيا» — آخر عقبة قبل الجرد
+## 🧩 حقل «إضافي» — كان في القاعدة ولا مدخل له في الشاشة
 
-`SSLCertVerificationError: certificate verify failed: self-signed certificate`
+**بلاغ المالك:** «ما وجدت مكان الحقل الإضافي». ⚠️ **وهو محق: الحقل لم يكن في الشاشة أصلا.**
 
-**والمعنى تقدّم لا تراجع:** المستمع مشفّر فعلا على 5986، **والاتصال يصل**، ولم يبق إلا أن شهادة الخادم موقّعة ذاتيا فرفضها التحقّق.
+العمود `extra` موجود في جدول الخزنة، و`put()` يقبله، و`env_for` تقرؤه منذ 24-9 — **والنموذج لا يعرضه، والمعالج يمرر فراغا مكانه دائما**.
 
-**والوسيطة موجودة في القارئ أصلا** (`KAMC_WIN_INSECURE`) ولا يعرفها من يقرأ نص الخطأ. فصارت الرسالة **تقول العلاج حرفا**.
+**ما تغيّر:**
+- **حقل «إضافي — وسائط بصيغة مفتاح=قيمة»** ظاهر في نموذج الخزنة، بمثال في مكانه: `KAMC_WIN_INSECURE=1, KAMC_WIN_TRANSPORT=ntlm`.
+- والمعالج صار **يمرر قيمته** بدل الفراغ.
 
-## ✅ الحل — من الخزنة بلا رقعة ولا كود
+## بعد التطبيق — الحل الذي انتظرناه
 
-`/repo/vault` ← «خوادم ويندوز» ← حقل **«إضافي»** أضف السطر:
+`/repo/vault` ← «خوادم ويندوز» ← اضغط ✏️ على البيانة ← في **«إضافي»** اكتب:
 
 ```
 KAMC_WIN_INSECURE=1
 ```
 
-⚠️ **والتحقق يبقى مفعّلا افتراضا** — تخطّيه **قرار معلن لا سلوك صامت**، ويصحّ داخل شبكة المدينة على عنوان معروف. والأنظف على المدى الطويل: شهادة صادرة عن مرجع المدينة على الخادم.
+← احفظ ← ثم `/repo/win` ← **«اسحب الآن وطبّق»**.
+
+**مقاس بالتشغيل:** الحقل يظهر · يُحفظ من الشاشة · ويصل القارئ (`KAMC_WIN_INSECURE=1` في مخرَج `env_for`).
 
 ## التطبيق
 
@@ -28,9 +32,7 @@ cd ~/kamc_ea
 curl -sL https://raw.githubusercontent.com/asmsot-boop/kamc-patch/main/latest.tar.gz.enc -o latest.tar.gz.enc
 curl -sL https://raw.githubusercontent.com/asmsot-boop/kamc-patch/main/latest.sha256 -o latest.sha256
 sha256sum -c <(echo "$(cat latest.sha256)  latest.tar.gz.enc")   # يجب OK
-openssl enc -d -aes-256-cbc -pbkdf2 -in latest.tar.gz.enc -out patch-2026.08.24-11.tar.gz -pass file:$HOME/.config/kamc/deploy_pass
-sha256sum patch-2026.08.24-11.tar.gz | cut -c1-24    # يجب cc254d7a6be886f4ad02b74a
-./patch.sh patch-2026.08.24-11.tar.gz
+openssl enc -d -aes-256-cbc -pbkdf2 -in latest.tar.gz.enc -out patch-2026.08.24-12.tar.gz -pass file:$HOME/.config/kamc/deploy_pass
+sha256sum patch-2026.08.24-12.tar.gz | cut -c1-24    # يجب 32a430cd1ef781fb0b213582
+./patch.sh patch-2026.08.24-12.tar.gz
 ```
-
-ℹ️ **ويمكن تجربة الحل قبل تطبيق الرقعة** — الوسيطة تعمل منذ 24-9، والرقعة تحسّن الرسالة فقط.
